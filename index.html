@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f0d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Chrono Renfo">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/icon-180.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>Chrono Renfo</title>
+</head>
+<body>
+  <main id="app">
+    <section id="home-screen" class="screen active">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">ENTRAÎNEMENT</p>
+          <h1>Chrono Renfo</h1>
+        </div>
+        <button id="add-routine" class="icon-button" aria-label="Ajouter une routine">＋</button>
+      </header>
+      <div id="routine-list" class="routine-list"></div>
+      <div id="empty-state" class="empty-state hidden">
+        <div class="empty-icon">⏱</div>
+        <h2>Aucune routine</h2>
+        <p>Crée ta première séance avec tes exercices et tes récupérations.</p>
+        <button id="empty-add" class="primary-button">Créer une routine</button>
+      </div>
+    </section>
+
+    <section id="detail-screen" class="screen">
+      <header class="topbar">
+        <button class="text-button" data-back="home">‹ Retour</button>
+        <button id="edit-routine" class="text-button">Modifier</button>
+      </header>
+      <div id="detail-content"></div>
+    </section>
+
+    <section id="editor-screen" class="screen">
+      <header class="topbar">
+        <button class="text-button" data-back="home">Annuler</button>
+        <h2 id="editor-heading">Nouvelle routine</h2>
+        <button id="save-routine" class="text-button accent">Enregistrer</button>
+      </header>
+      <div class="editor-content">
+        <label class="field-label" for="routine-name">Nom de la routine</label>
+        <input id="routine-name" class="text-input" maxlength="60" placeholder="Ex. Haut du corps">
+        <div class="section-heading-row">
+          <h3>Exercices</h3>
+          <button id="add-exercise" class="small-button">＋ Exercice</button>
+        </div>
+        <div id="exercise-editor-list"></div>
+      </div>
+    </section>
+
+    <section id="workout-screen" class="screen workout-screen">
+      <header class="workout-header">
+        <button id="stop-workout" class="round-button" aria-label="Arrêter">×</button>
+        <div id="workout-routine-name" class="workout-routine-name"></div>
+        <button id="pause-workout" class="round-button" aria-label="Pause">Ⅱ</button>
+      </header>
+      <div class="workout-body">
+        <div id="stage-label" class="stage-label">PRÉPARATION</div>
+        <div id="current-title" class="current-title">Prêt ?</div>
+        <div id="timer" class="timer">10</div>
+        <div id="next-card" class="next-card">
+          <span class="next-label">À SUIVRE</span>
+          <span id="next-title" class="next-title">—</span>
+          <span id="next-duration" class="next-duration">—</span>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div>
+          <div id="progress-text" class="progress-text">0 / 0</div>
+        </div>
+      </div>
+      <footer class="workout-controls">
+        <button id="skip-workout" class="secondary-button">Passer</button>
+      </footer>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js"></script>
+</body>
+</html>
