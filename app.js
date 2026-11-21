@@ -2,6 +2,7 @@
 
 const STORAGE_KEY = 'chrono-renfo-routines-v1';
 const PREP_SECONDS = 10;
+const APP_VERSION = 3;
 
 const $ = id => document.getElementById(id);
 const screens = ['home-screen', 'detail-screen', 'editor-screen', 'workout-screen'];
@@ -22,6 +23,8 @@ function defaultRoutine() {
   return {
     id: uid(),
     name: 'Ma routine',
+    rounds: 1,
+    interRoundRest: 30,
     exercises: [
       { id: uid(), name: 'Pompes', duration: 30, restAfter: 30 },
       { id: uid(), name: 'Abdos', duration: 30, restAfter: 30 },
@@ -30,10 +33,26 @@ function defaultRoutine() {
   };
 }
 
+function normalizeRoutine(routine) {
+  const exercises = Array.isArray(routine?.exercises) ? routine.exercises : [];
+  return {
+    id: typeof routine?.id === 'string' ? routine.id : uid(),
+    name: typeof routine?.name === 'string' && routine.name.trim() ? routine.name : 'Routine sans nom',
+    rounds: clampInt(routine?.rounds, 1, 20, 1),
+    interRoundRest: clampInt(routine?.interRoundRest, 0, 3600, 30),
+    exercises: exercises.map((ex, i) => ({
+      id: typeof ex.id === 'string' ? ex.id : uid(),
+      name: typeof ex.name === 'string' && ex.name.trim() ? ex.name : `Exercice ${i + 1}`,
+      duration: clampInt(ex.duration, 1, 3600, 30),
+      restAfter: clampInt(ex.restAfter, 0, 3600, 30)
+    }))
+  };
+}
+
 function loadRoutines() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    if (Array.isArray(parsed) && parsed.length) return parsed;
+    if (Array.isArray(parsed) && parsed.length) return parsed.map(normalizeRoutine); 
   } catch (_) {}
   return [];
 }
@@ -62,19 +81,28 @@ function clock(seconds) {
 }
 
 function routineTotal(routine) {
-  return routine.exercises.reduce((sum, ex, i) => sum + Number(ex.duration || 0) + (i < routine.exercises.length - 1 ? Number(ex.restAfter || 0) : 0), 0);
+  const rounds = clampInt(routine.rounds, 1, 20, 1);
+  const oneRound = routine.exercises.reduce((sum, ex, i) => sum + Number(ex.duration || 0) + (i < routine.exercises.length - 1 ? Number(ex.restAfter || 0) : 0), 0);
+  return oneRound * rounds + Math.max(0, rounds - 1) * Number(routine.interRoundRest || 0);
 }
 
 function buildSequence(routine) {
   const sequence = [];
-  routine.exercises.forEach((ex, i) => {
-    const duration = Math.max(1, Number(ex.duration) || 1);
-    sequence.push({ type: 'exercise', title: ex.name || `Exercice ${i + 1}`, duration, exerciseIndex: i });
-    if (i < routine.exercises.length - 1) {
-      const rest = Math.max(0, Number(ex.restAfter) || 0);
-      if (rest > 0) sequence.push({ type: 'rest', title: 'Récupération', duration: rest, exerciseIndex: i });
+  const rounds = clampInt(routine.rounds, 1, 20, 1);
+  for (let round = 0; round < rounds; round++) {
+    routine.exercises.forEach((ex, i) => {
+      const duration = Math.max(1, Number(ex.duration) || 1);
+      sequence.push({ type: 'exercise', title: ex.name || `Exercice ${i + 1}`, duration, exerciseIndex: i, roundIndex: round });
+      if (i < routine.exercises.length - 1) {
+        const rest = Math.max(0, Number(ex.restAfter) || 0);
+        if (rest > 0) sequence.push({ type: 'rest', title: 'Récupération', duration: rest, exerciseIndex: i, roundIndex: round });
+      }
+    });
+    if (round < rounds - 1) {
+      const rest = Math.max(0, Number(routine.interRoundRest) || 0);
+      if (rest > 0) sequence.push({ type: 'rest', title: 'Récupération entre les tours', duration: rest, roundIndex: round });
     }
-  });
+  }
   return sequence;
 }
 
@@ -88,25 +116,29 @@ function renderHome() {
   routines.forEach(routine => {
     const card = document.createElement('article');
     card.className = 'routine-card';
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', `Afficher le détail de ${routine.name}`);
     const count = routine.exercises.length;
+    const rounds = clampInt(routine.rounds, 1, 20, 1);
     card.innerHTML = `
       <div class="routine-card-main">
-        <div>
+        <div class="routine-card-copy">
           <h2>${escapeHtml(routine.name)}</h2>
-          <div class="meta">${count} exercice${count > 1 ? 's' : ''} · ${formatSeconds(routineTotal(routine))}</div>
+          <div class="meta">${count} exercice${count > 1 ? 's' : ''} · ${rounds} tour${rounds > 1 ? 's' : ''} · ${formatSeconds(routineTotal(routine))}</div>
         </div>
-        <button class="small-button open-routine" data-id="${routine.id}">Ouvrir</button>
-      </div>
-      <div class="card-actions">
-        <button class="secondary-button edit-card" data-id="${routine.id}">Modifier</button>
-        <button class="danger-button delete-card" data-id="${routine.id}">Supprimer</button>
+        <button class="launch-button" type="button" data-id="${escapeAttr(routine.id)}" aria-label="Lancer ${escapeAttr(routine.name)}"><span>▶</span></button>
       </div>`;
+    card.addEventListener('click', () => openDetail(routine.id));
+    card.addEventListener('keydown', e => {
+      if (e.target === card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openDetail(routine.id); }
+    });
+    card.querySelector('.launch-button').addEventListener('click', e => {
+      e.stopPropagation();
+      startWorkout(routine);
+    });
     list.appendChild(card);
   });
-
-  list.querySelectorAll('.open-routine').forEach(btn => btn.addEventListener('click', () => openDetail(btn.dataset.id)));
-  list.querySelectorAll('.edit-card').forEach(btn => btn.addEventListener('click', () => openEditor(btn.dataset.id)));
-  list.querySelectorAll('.delete-card').forEach(btn => btn.addEventListener('click', () => deleteRoutine(btn.dataset.id)));
 }
 
 function openDetail(id) {
@@ -116,7 +148,7 @@ function openDetail(id) {
   const sequence = buildSequence(routine);
   $('detail-content').innerHTML = `
     <h1 class="detail-title">${escapeHtml(routine.name)}</h1>
-    <p class="detail-meta">${routine.exercises.length} exercice${routine.exercises.length > 1 ? 's' : ''} · ${formatSeconds(routineTotal(routine))}</p>
+    <p class="detail-meta">${routine.exercises.length} exercice${routine.exercises.length > 1 ? 's' : ''} · ${clampInt(routine.rounds, 1, 20, 1)} tour${clampInt(routine.rounds, 1, 20, 1) > 1 ? 's' : ''} · ${formatSeconds(routineTotal(routine))}</p>
     <div class="sequence-list">
       ${sequence.map((item, i) => `
         <div class="sequence-item">
@@ -136,6 +168,9 @@ function openEditor(id = null) {
   editorRoutine = JSON.parse(JSON.stringify(source));
   $('editor-heading').textContent = id ? 'Modifier la routine' : 'Nouvelle routine';
   $('routine-name').value = editorRoutine.name;
+  $('routine-rounds').value = clampInt(editorRoutine.rounds, 1, 20, 1);
+  $('inter-round-rest').value = clampInt(editorRoutine.interRoundRest, 0, 3600, 30);
+  $('delete-routine').classList.toggle('hidden', !id);
   renderExerciseEditor();
   showScreen('editor-screen');
 }
@@ -184,6 +219,8 @@ function moveExercise(index, direction) {
 function saveEditor() {
   const name = $('routine-name').value.trim() || 'Routine sans nom';
   editorRoutine.name = name;
+  editorRoutine.rounds = clampInt($('routine-rounds').value, 1, 20, 1);
+  editorRoutine.interRoundRest = clampInt($('inter-round-rest').value, 0, 3600, 30);
   editorRoutine.exercises.forEach((ex, i) => {
     ex.name = ex.name.trim() || `Exercice ${i + 1}`;
     ex.duration = clampInt(ex.duration, 1, 3600, 30);
@@ -198,6 +235,74 @@ function saveEditor() {
   toast('Routine enregistrée');
 }
 
+
+function exportRoutines() {
+  const payload = {
+    app: 'Chrono Renfo',
+    version: APP_VERSION,
+    exportedAt: new Date().toISOString(),
+    routines
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `chrono-renfo-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast(`${routines.length} routine${routines.length > 1 ? 's' : ''} sauvegardée${routines.length > 1 ? 's' : ''}`);
+}
+
+function normalizeImportedRoutines(data) {
+  const source = Array.isArray(data) ? data : data?.routines;
+  if (!Array.isArray(source)) throw new Error('Format de sauvegarde invalide');
+  const cleaned = source.map(r => ({
+    id: typeof r.id === 'string' ? r.id : uid(),
+    name: typeof r.name === 'string' && r.name.trim() ? r.name.trim() : 'Routine sans nom',
+    rounds: clampInt(r.rounds, 1, 20, 1),
+    interRoundRest: clampInt(r.interRoundRest, 0, 3600, 30),
+    exercises: Array.isArray(r.exercises) ? r.exercises.map((ex, i) => ({
+      id: typeof ex.id === 'string' ? ex.id : uid(),
+      name: typeof ex.name === 'string' && ex.name.trim() ? ex.name.trim() : `Exercice ${i + 1}`,
+      duration: clampInt(ex.duration, 1, 3600, 30),
+      restAfter: clampInt(ex.restAfter, 0, 3600, 30)
+    })).filter(ex => ex.name) : []
+  })).filter(r => r.exercises.length > 0);
+  if (!cleaned.length) throw new Error('Aucune routine valide dans cette sauvegarde');
+  return cleaned;
+}
+
+function importRoutines(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = normalizeImportedRoutines(JSON.parse(reader.result));
+      const replace = confirm(`Restaurer ${imported.length} routine${imported.length > 1 ? 's' : ''} ?\n\nOK = remplacer les routines actuelles\nAnnuler = ajouter les routines sauvegardées`);
+      if (replace) {
+        routines = imported;
+      } else {
+        const existingNames = new Set(routines.map(r => r.name));
+        imported.forEach(r => {
+          const copy = JSON.parse(JSON.stringify(r));
+          copy.id = uid();
+          if (existingNames.has(copy.name)) copy.name = `${copy.name} (restaurée)`;
+          copy.exercises.forEach(ex => ex.id = uid());
+          routines.push(copy);
+        });
+      }
+      saveRoutines();
+      renderHome();
+      toast('Sauvegarde restaurée');
+    } catch (error) {
+      toast('Sauvegarde invalide ou illisible');
+    }
+  };
+  reader.onerror = () => toast('Impossible de lire le fichier');
+  reader.readAsText(file);
+}
+
 function deleteRoutine(id) {
   const routine = routines.find(r => r.id === id);
   if (!routine) return;
@@ -205,6 +310,19 @@ function deleteRoutine(id) {
   routines = routines.filter(r => r.id !== id);
   saveRoutines();
   renderHome();
+}
+
+function deleteEditorRoutine() {
+  if (!editorRoutine) return;
+  const existing = routines.find(r => r.id === editorRoutine.id);
+  if (!existing) return;
+  if (!confirm(`Supprimer « ${existing.name} » ? Cette action est définitive.`)) return;
+  routines = routines.filter(r => r.id !== existing.id);
+  saveRoutines();
+  editorRoutine = null;
+  renderHome();
+  showScreen('home-screen');
+  toast('Routine supprimée');
 }
 
 async function startWorkout(routine) {
@@ -417,10 +535,18 @@ function escapeHtml(value) {
 }
 function escapeAttr(value) { return escapeHtml(value); }
 
+$('backup-routines').addEventListener('click', exportRoutines);
+$('restore-routines').addEventListener('click', () => $('restore-file').click());
+$('restore-file').addEventListener('change', e => {
+  const file = e.target.files?.[0];
+  if (file) importRoutines(file);
+  e.target.value = '';
+});
 $('add-routine').addEventListener('click', () => openEditor());
 $('empty-add').addEventListener('click', () => openEditor());
 $('edit-routine').addEventListener('click', () => openEditor(selectedRoutineId));
 $('save-routine').addEventListener('click', saveEditor);
+$('delete-routine').addEventListener('click', deleteEditorRoutine);
 $('add-exercise').addEventListener('click', () => {
   editorRoutine.exercises.push({ id: uid(), name: `Exercice ${editorRoutine.exercises.length + 1}`, duration: 30, restAfter: 30 });
   renderExerciseEditor();

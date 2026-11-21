@@ -1,55 +1,33 @@
-# Chrono Renfo
+# Chrono Renfo — V3
 
-PWA de minuteur d'entraînement pour iPhone, sans dépendance externe.
+Application web progressive (PWA) de chronométrage de routines de renforcement musculaire. Aucun framework ni dépendance externe.
 
-## Fonctionnalités
+## Nouveautés V3
+- Nombre de tours configurable par routine (1 à 20).
+- Durée de récupération configurable entre les tours.
+- Écran d’accueil simplifié : toucher une carte ouvre son détail ; le bouton vert lance directement la séance.
+- Modification et suppression accessibles depuis l’édition de la routine.
+- Sauvegarde et restauration de toutes les routines au format JSON.
+- Migration automatique des routines V1 : les routines existantes conservent leurs exercices, durées et récupérations ; elles reçoivent 1 tour par défaut.
 
-- Création, modification et suppression de routines.
-- Nom de routine personnalisable.
-- Exercices réordonnables.
-- Durée personnalisable pour chaque exercice.
-- Récupération personnalisable après chaque exercice.
-- Compte à rebours de préparation de 10 secondes.
-- Affichage du temps restant, de l'exercice en cours et de l'étape suivante.
-- Pause, reprise, passage à l'étape suivante et arrêt.
-- Bips audio et vibration si le navigateur les autorise.
-- Tentative de verrouillage d'écran via Screen Wake Lock quand disponible.
-- Sauvegarde locale dans le navigateur (`localStorage`).
-- Fonctionnement hors connexion après la première ouverture grâce au service worker.
-- Aucun serveur applicatif, aucune base de données et aucune dépendance.
+## Déploiement GitHub Pages
+1. Décompresser l’archive.
+2. Remplacer les fichiers du dépôt par le contenu du dossier `chrono-renfo` (à la racine du dépôt).
+3. Commit / push sur la branche configurée dans GitHub Pages.
+4. Ouvrir l’application et attendre le rechargement de la nouvelle version.
 
-## Déployer sur GitHub Pages
+## Important : conservation des routines
+La clé de stockage locale reste `chrono-renfo-routines-v1`, identique à la V1. Les données ne sont pas supprimées lors du déploiement. La V3 ajoute les champs `rounds` et `interRoundRest` à la volée, avec des valeurs par défaut, sans effacer les données existantes.
 
-1. Crée un dépôt GitHub, par exemple `chrono-renfo`.
-2. Copie **le contenu de ce dossier** à la racine du dépôt.
-3. Fais un commit puis un push.
-4. Dans GitHub : **Settings → Pages**.
-5. Choisis **Deploy from a branch**, puis la branche `main` et le dossier `/ (root)`.
-6. Ouvre l'URL GitHub Pages fournie par GitHub.
+Par précaution, après l’installation de la V3, utiliser **Sauvegarder** et conserver le fichier JSON dans iCloud Drive ou Fichiers.
 
-Les chemins du projet sont relatifs afin de fonctionner aussi bien à la racine qu'à l'adresse d'un dépôt GitHub Pages.
+## Installation iPhone
+Ouvrir l’URL GitHub Pages dans Safari, puis Partager → Sur l’écran d’accueil.
 
-## Installer sur iPhone
-
-Dans Safari, ouvre l'adresse GitHub Pages, puis utilise **Partager → Sur l'écran d'accueil**. La PWA peut alors être lancée comme une application autonome.
-
-## Données
-
-Les routines sont stockées localement sur l'appareil dans le navigateur. Supprimer les données du site ou changer de navigateur/appareil ne transfère pas automatiquement les routines.
-
-## Structure
-
-```text
-chrono-renfo/
-├── index.html
-├── styles.css
-├── app.js
-├── manifest.json
-├── sw.js
-├── README.md
-└── assets/
-    ├── icon.svg
-    ├── icon-180.png
-    ├── icon-192.png
-    └── icon-512.png
-```
+## Fichiers
+- `index.html` : structure de l’application
+- `styles.css` : interface
+- `app.js` : routines, éditeur, sauvegarde/restauration et chronomètre
+- `manifest.json` : configuration PWA
+- `sw.js` : cache hors connexion et mise à jour
+- `assets/` : icônes

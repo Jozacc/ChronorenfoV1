@@ -21,9 +21,13 @@
           <p class="eyebrow">ENTRAÎNEMENT</p>
           <h1>Chrono Renfo</h1>
         </div>
-        <button id="add-routine" class="icon-button" aria-label="Ajouter une routine">＋</button>
+        <div class="topbar-actions"><button id="backup-routines" class="text-button">Sauvegarder</button><button id="add-routine" class="icon-button" aria-label="Ajouter une routine">＋</button></div>
       </header>
       <div id="routine-list" class="routine-list"></div>
+      <div class="backup-panel">
+        <button id="restore-routines" class="secondary-button">Restaurer une sauvegarde</button>
+        <input id="restore-file" type="file" accept="application/json,.json" hidden>
+      </div>
       <div id="empty-state" class="empty-state hidden">
         <div class="empty-icon">⏱</div>
         <h2>Aucune routine</h2>
@@ -49,11 +53,16 @@
       <div class="editor-content">
         <label class="field-label" for="routine-name">Nom de la routine</label>
         <input id="routine-name" class="text-input" maxlength="60" placeholder="Ex. Haut du corps">
+        <div class="routine-settings">
+          <label><span class="input-caption">Nombre de tours</span><input id="routine-rounds" class="number-input" type="number" min="1" max="20" inputmode="numeric" value="1"></label>
+          <label><span class="input-caption">Récupération entre les tours (secondes)</span><input id="inter-round-rest" class="number-input" type="number" min="0" max="3600" inputmode="numeric" value="30"></label>
+        </div>
         <div class="section-heading-row">
           <h3>Exercices</h3>
           <button id="add-exercise" class="small-button">＋ Exercice</button>
         </div>
         <div id="exercise-editor-list"></div>
+        <div class="editor-danger-zone"><button id="delete-routine" class="danger-button hidden">Supprimer cette routine</button></div>
       </div>
     </section>
 
